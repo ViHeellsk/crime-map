@@ -7,7 +7,7 @@ import io  # Pomáhá zpracovat soubory v paměti
 # Inicializace FastAPI aplikace
 app = FastAPI()
 
-# Konfigurace databáze (změňte podle svého nastavení)
+# Konfigurace databáze
 db_config = {
     "host": "mariadb",  # Název databázového serveru
     "user": "root",  # Uživatelské jméno
@@ -18,3 +18,17 @@ db_config = {
 def insert_crime_data(df):
     conn = mysql.connector.connect(**db_config)  # Připojení k databázi
     cursor = conn.cursor()
+
+# SQL dotaz pro vložení dat do tabulky crime_data
+    query = """
+    INSERT INTO crime_data (area_id, year, crime_type_id, count)
+    VALUES (%s, %s, %s, %s)
+    """
+
+# Projdeme řádky DataFrame a vložíme je do databáze
+    for _, row in df.iterrows():
+        cursor.execute(query, (row["area_id"], row["year"], row["crime_type_id"], row["count"]))
+
+    conn.commit()  # Uložíme změny
+    cursor.close()
+    conn.close()  # Uzavřeme připojení
