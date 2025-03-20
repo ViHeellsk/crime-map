@@ -1,18 +1,17 @@
-# Použijeme oficiální obraz Pythonu jako základ
-FROM python:3.9
+# Používáme oficiální obraz Pythonu verze 3.10
+FROM python:3.10
 
-# Vytvoříme a nastavíme pracovní adresář ve stroji
+# Nastavíme pracovní adresář uvnitř kontejneru
 WORKDIR /app
 
-# Nakopírujeme soubory s kódem aplikace do pracovního adresáře ve stroji
-COPY . /app
+# Zkopírujeme soubor s požadavky (závislostmi) do kontejneru
+COPY requirements.txt requirements.txt
 
-# Nainstalujeme závislosti pomocí pip (Předpokládejme, že máme requirements.txt se závislostmi)
+# Nainstalujeme závislosti ze souboru requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exponujeme port 8000, který používá FastAPI
-EXPOSE 8000
+# Zkopírujeme celý kód aplikace do kontejneru
+COPY . .
 
-# Spustíme FastAPI aplikaci pomocí uvicorn serveru
+# Spustíme aplikaci pomocí Uvicorn (server pro FastAPI)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
