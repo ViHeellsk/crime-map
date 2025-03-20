@@ -1,5 +1,5 @@
 
-CREATE USER 'pepa'@'%' IDENTIFIED BY 'semtex123.';
+CREATE USER 'pepa'@'%' IDENTIFIED BY 'semtex111.';
 GRANT ALL PRIVILEGES ON Interesting_Places.* TO 'pepa'@'%';
 FLUSH PRIVILEGES;
 
