@@ -32,3 +32,34 @@ def insert_crime_data(df):
     conn.commit()  # Uložíme změny
     cursor.close()
     conn.close()  # Uzavřeme připojení
+
+@app.post("/upload-csv/")
+async def upload_csv(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()  # Načteme obsah souboru
+        df = pd.read_csv(io.StringIO(contents.decode("utf-8")))  # Převedeme na DataFrame
+        
+        # Ověříme, zda soubor obsahuje požadované sloupce
+        if not {"area_id", "year", "crime_type_id", "count"}.issubset(df.columns):
+            raise HTTPException(status_code=400, detail="Chybí požadované sloupce!")
+
+        insert_crime_data(df)  # Vložíme data do databáze
+        return {"message": "Data byla úspěšně nahrána!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  # Vrátíme chybu v případě problémů
+
+@app.post("/upload-excel/")
+async def upload_excel(file: UploadFile = File(...)):
+    """Endpoint pro nahrání Excel souboru s daty kriminality."""
+    try:
+        contents = await file.read()  # Načteme obsah souboru
+        df = pd.read_excel(io.BytesIO(contents))  # Převedeme na DataFrame
+
+        # Ověříme, zda soubor obsahuje požadované sloupce
+        if not {"area_id", "year", "crime_type_id", "count"}.issubset(df.columns):
+            raise HTTPException(status_code=400, detail="Chybí požadované sloupce!")
+
+        insert_crime_data(df)  # Vložíme data do databáze
+        return {"message": "Data byla úspěšně nahrána!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  # Vrátíme chybu v případě problémů
