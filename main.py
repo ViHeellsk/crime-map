@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import mysql.connector
+from fastapi import FastAPI, Depends, HTTPException    # FastAPI je framework pro rychlé vytváření API. Tyto importy umožňují vytvářet závislosti (Depends) a zpracovávat výjimky (HTTPException).
+from fastapi.middleware.cors import CORSMiddleware    # Přidává podporu CORS (Cross-Origin Resource Sharing), což umožňuje komunikaci mezi různými doménami, například při vytváření webového API.
+# mysql.connector je knihovna pro připojení a komunikaci s databází MySQL. `Error` je třída pro zpracování chyb při práci s databází.
+import mysql.connector                                
 from mysql.connector import Error
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel # Pydantic je knihovna pro validaci dat. `BaseModel` slouží k definici modelů 
+from typing import List, Optional, Dict, Any # Typová anotace pro Python, která definuje různé typy dat
+# Knihovna `json` umožňuje práci s JSON soubory, zatímco `os` poskytuje přístup k funkcím operačního systému
 import json
 import os
 
@@ -55,37 +57,41 @@ def read_root():
     return {"message": "Vítejte v Czech Crime Map API"}
 
 # Získání seznamu typů trestných činů
-@app.get("/crime-types", response_model=List[CrimeType])
-def get_crime_types(connection=Depends(get_db)):
+@app.get("/crime-types", response_model=List[CrimeType]) # Definuje GET endpoint pro získání seznamu typů zločinů.
+def get_crime_types(connection=Depends(get_db)):     # Funkce závislá na připojení k databázi pomocí get_db.
     try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT id_crime_type as id, description FROM id_catalog")
-        crime_types = cursor.fetchall()
-        cursor.close()
+        cursor = connection.cursor(dictionary=True)     # Vytvoří kurzor pro SQL dotazy s výsledky jako slovník.
+        cursor.execute("SELECT id_crime_type as id, description FROM id_catalog")      # Provede SQL dotaz na tabulku id_catalog.
+        crime_types = cursor.fetchall()            # Získá všechny výsledky dotazu.
+        # Uzavře kurzor a připojení k databázi.
+        cursor.close()                            
         connection.close()
-        return crime_types
-    except Error as e:
+        return crime_types         # Vrátí data ve formátu JSON.
+    except Error as e:              # Zpracuje chybu a vrátí HTTP odpověď s chybovým kódem 500.
         raise HTTPException(status_code=500, detail=str(e))
 
 # Získání seznamu oblastí a jejich hranic ve formátu GeoJSON
-@app.get("/areas", response_model=List[Area])
-def get_areas(connection=Depends(get_db)):
+@app.get("/areas", response_model=List[Area])    # Definuje GET endpoint, který vrací seznam oblastí.
+def get_areas(connection=Depends(get_db)):         # Funkce využívá připojení k databázi, získané přes závislost get_db.
     try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT id_area as id, name, geojson_data FROM id_area")
-        areas = cursor.fetchall()
-        cursor.close()
+        cursor = connection.cursor(dictionary=True)        # Vytváří kurzor pro SQL dotazy, výsledky budou vráceny jako slovníky.
+        cursor.execute("SELECT id_area as id, name, geojson_data FROM id_area")     # Provádí SQL dotaz na tabulku id_area a získává požadovaná data.
+        areas = cursor.fetchall()     # Získává všechny záznamy výsledku dotazu.
+       # Uzavírá kurzor a připojení k databázi.
+        cursor.close()                
         connection.close()
 
     # Převod geojson_data z řetězce na JSON
         for area in areas:
             if area["geojson_data"] and area["geojson_data"] != "[NULL]":
                 try:
-                    area["geojson_data"] = json.loads(area["geojson_data"])
+                    area["geojson_data"] = json.loads(area["geojson_data"]) # Převede geojson_data z řetězce na JSON, pokud je validní.
                 except:
-                    area["geojson_data"] = None
-        
+                    area["geojson_data"] = None    # Pokud dojde k chybě při převodu, nastaví geojson_data na None.
+      
+        # Vrací seznam oblastí ve formátu JSON.
         return areas
+        # Zpracovává chyby a vrací HTTP odpověď s chybovým kódem 500 a podrobnostmi.
     except Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
