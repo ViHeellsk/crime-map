@@ -97,10 +97,12 @@ def get_areas(connection=Depends(get_db)):         # Funkce využívá připojen
 
   # Získání dat o trestných činech (filtrováno podle roku a typu trestného činu)
 @app.get("/crime-data")
+ # Funkce umožňuje filtrovat data podle roku a typu zločinu. Připojení k databázi je získáno přes závislost get_db.
 def get_crime_data(year: Optional[int] = None, crime_type_id: Optional[int] = None, connection=Depends(get_db)):
     try:
-        cursor = connection.cursor(dictionary=True)
+        cursor = connection.cursor(dictionary=True)     # Vytváří kurzor pro SQL dotazy, výsledky jsou vráceny jako slovníky.
         
+        # SQL dotaz získává data o zločinech včetně oblasti, typu zločinu, roku a počtu.
         query = """
         SELECT a.id_area as area_id, a.name as area_name, c.id_crime_type as crime_type_id, 
                ct.description as crime_type, c.year, c.count
@@ -109,54 +111,64 @@ def get_crime_data(year: Optional[int] = None, crime_type_id: Optional[int] = No
         JOIN id_catalog ct ON c.id_crime_type = ct.id_crime_type
         WHERE 1=1
         """
-        params = []
-        
+        params = []    # Parametry pro dotaz budou doplněny dynamicky.
+
+        # Přidává filtr na rok, pokud je zadaný.
         if year:
             query += " AND c.year = %s"
             params.append(year)
-        
+
+         # Přidává filtr na typ zločinu, pokud je zadaný.
         if crime_type_id:
             query += " AND c.id_crime_type = %s"
             params.append(crime_type_id)
         
-        cursor.execute(query, params)
-        crime_data = cursor.fetchall()
+        cursor.execute(query, params)          # Provádí SQL dotaz s parametry.
+        crime_data = cursor.fetchall()        # Získává všechna data z výsledku dotazu.
+         # Uzavírá kurzor a připojení k databázi.
         cursor.close()
         connection.close()
-        
+
+         # Vrací data o zločinech ve formátu JSON.
         return crime_data
+         # Zpracovává chybu a vrací HTTP odpověď s kódem 500 a podrobnostmi.
     except Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
   # Získání dostupných let
 @app.get("/years")
-def get_available_years(connection=Depends(get_db)):
+def get_available_years(connection=Depends(get_db)):     # Funkce získává seznam let z databáze. Připojení je získáno přes závislost get_db.
     try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT DISTINCT year FROM crimes ORDER BY year")
-        years = [item["year"] for item in cursor.fetchall()]
+        cursor = connection.cursor(dictionary=True)     # Vytváří kurzor pro SQL dotazy.
+        cursor.execute("SELECT DISTINCT year FROM crimes ORDER BY year")     # SQL dotaz získává unikátní roky z tabulky crimes a seřazuje je.
+        years = [item["year"] for item in cursor.fetchall()]         # Vytváří seznam dostupných let z výsledku dotazu.
+        # Uzavírá kurzor a připojení k databázi.
         cursor.close()
         connection.close()
-        return years
+        return years # Vrací seznam let ve formátu JSON.
+         # Zpracovává chybu a vrací HTTP odpověď s kódem 500 a podrobnostmi.
     except Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
   # Získání GeoJSON souboru s hranicemi České republiky
 @app.get("/geojson")
-def get_geojson():
+def get_geojson():     # Funkce načítá GeoJSON data ze souboru.
     try:
         # Cesta k souboru GeoJSON
-        file_path = os.path.join(os.path.dirname(__file__), "mariadb_data", "czech_republic.geojson")
-        if os.path.exists(file_path):
+        file_path = os.path.join(os.path.dirname(__file__), "mariadb_data", "czech_republic.geojson")     # Získává cestu k souboru GeoJSON, který je uložen ve složce "mariadb_data".
+        if os.path.exists(file_path):      # Kontroluje, zda soubor existuje.
+              # Kontroluje, zda soubor existuje.
             with open(file_path, "r", encoding="utf-8") as f:
                 geojson_data = json.load(f)
-            return geojson_data
-        else:
+            return geojson_data     # Vrací načtená GeoJSON data.
+        else:     # Vyvolává výjimku s kódem 404, pokud soubor neexistuje.
             raise HTTPException(status_code=404, detail="GeoJSON soubor nebyl nalezen")
+                    # Zpracovává obecné chyby a vrací HTTP odpověď s kódem 500 a podrobnostmi.
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
   # Spuštění API pomocí Uvicorn
+ # Importuje Uvicorn, server pro spuštění aplikací FastAPI.
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)     # Spouští aplikaci na všech IP adresách (host = "0.0.0.0") a portu 8000.
