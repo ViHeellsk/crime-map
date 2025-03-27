@@ -1,3 +1,4 @@
+# Import potřebných knihoven
 import streamlit as st
 import pandas as pd
 import requests
@@ -6,17 +7,17 @@ import plotly.graph_objects as go
 from typing import Dict, List, Any
 import numpy as np
 
-# Set page configuration
+# Nastavení konfigurace stránky Streamlit
 st.set_page_config(
     page_title="Czech Republic Crime Statistics",
     page_icon="🇨🇿",
-    layout="wide"
+    layout="wide"    #Široké rozvržení pro lepší zobrazení grafů
 )
 
-# API base URL
+# URL adresa API, odkud načítáme data
 API_URL = "http://fastapi:8000"
 
-# Load data from the API
+# === Funkce pro načtení dat z API s kešováním výsledků ===
 @st.cache_data(ttl=3600)
 def load_crime_types():
     response = requests.get(f"{API_URL}/crime-types")
@@ -43,7 +44,7 @@ def load_crime_data(year=None, crime_type_id=None):
     response = requests.get(f"{API_URL}/crime-data", params=params)
     return response.json()
 
-# Helper functions
+# === Funkce pro vizualizaci dat ===
 def create_crime_bar_chart(crime_data, selected_year, selected_crime_type):
     """Create a bar chart of crime by region"""
     filtered_data = [
@@ -51,25 +52,24 @@ def create_crime_bar_chart(crime_data, selected_year, selected_crime_type):
         if item["year"] == selected_year and item["crime_type_id"] == selected_crime_type
     ]
     
-    df = pd.DataFrame(filtered_data)
+    df = pd.DataFrame(filtered_data)    # Převod na DataFrame
     
     if df.empty:
-        return None
+        return None         # Pokud nejsou žádná data, vrátíme None
     
-    # Skip the first area (which is the whole country)
-    df = df[df["area_id"] > 1]
+    df = df[df["area_id"] > 1]        # Vynechání celkových dat za ČR
     
-    # Sort by crime count
+     # Seřazení podle počtu trestných činů (od nejvyššího po nejnižší)
     df_sorted = df.sort_values("count", ascending=False)
     
-    # Create bar chart
+     # Vytvoření sloupcového grafu
     fig = px.bar(
         df_sorted,
         x="area_name",
         y="count",
         title=f"Crime Counts by Region ({selected_year})",
         color="count",
-        color_continuous_scale="RdYlGn_r",  # Red to Green reversed (high crime is red)
+        color_continuous_scale="RdYlGn_r",   # Červená = vysoká kriminalita, zelená = nízká
         labels={"area_name": "Region", "count": "Crime Count"}
     )
     
@@ -81,7 +81,7 @@ def create_crime_bar_chart(crime_data, selected_year, selected_crime_type):
         height=500,
     )
     
-    return fig
+    return fig        # Vrácení grafu
 
 def create_crime_trend_chart(crime_data, selected_crime_type):
     """Create a line chart showing crime trends over years"""
@@ -282,28 +282,29 @@ def create_total_crime_bar_chart(total_crime_data):
     
     return fig
 
-# Main app
+# === Hlavní aplikace ===
 def main():
-    # App title
+        # Titulek aplikace
     st.title("🇨🇿 Czech Republic Crime Statistics")
     st.write("Explore crime statistics across different regions of the Czech Republic")
     
     # Load the necessary data
     try:
-        crime_types = load_crime_types()
+         # Načtení dat z API
+        crime_types = load_crime_types()    # Načtení typů kriminality
         #areas = load_areas()
-        years = load_years()
+        years = load_years()                # Načtení dostupných let
         print(years)
         # Create sidebar for filters
-        st.sidebar.header("Filters")
+        st.sidebar.header("Filters")         # Nadpis bočního panelu
         
-        # Convert crime types to a dictionary for easier selection
+         # Převod typů kriminality na slovník pro snadný výběr
         crime_type_dict = {ct["id"]: ct["description"] for ct in crime_types}
         
-        # Default to the first crime type (total criminality)
+        # Výchozí hodnoty filtrů
         default_crime_type = 1
         
-        # Filter selections
+        # Výběr typu kriminality
         selected_crime_type = st.sidebar.selectbox(
             "Select Crime Type:",
             options=list(crime_type_dict.keys()),
@@ -311,42 +312,44 @@ def main():
             index=list(crime_type_dict.keys()).index(default_crime_type) if default_crime_type in crime_type_dict else 0
         )
         
-        # Get the latest year as default
+        # Získání nejnovějšího roku jako výchozí hodnota
         default_year = max(years) if years else None
-        
+
+        # Výběr roku pomocí bočního panelu
         selected_year = st.sidebar.selectbox(
             "Select Year:",
             options=years,
             index=years.index(default_year) if default_year in years else 0
         )
         
-        # Load all crime data once
+       # Načtení všech dat o kriminalitě najednou
         all_crime_data = load_crime_data()
         
-        # Calculate total crime for each year
+         # Výpočet celkového počtu trestných činů pro každý rok
         total_crime_data = calculate_total_crime(all_crime_data)
         
-        # Display total crime data in a new section
+        # Zobrazení celkových statistik kriminality v bočním panelu
         st.sidebar.header("Total Crime Statistics")
         if total_crime_data is not None and not total_crime_data.empty:
             st.sidebar.subheader("Total Crime by Year")
-            st.sidebar.dataframe(total_crime_data)
+            st.sidebar.dataframe(total_crime_data)    # Zobrazení datového rámce s celkovými počty
             
-            # Add bar chart for total crime by year
+              # Přidání sloupcového grafu s celkovým počtem trestných činů podle roku
             total_crime_chart = create_total_crime_bar_chart(total_crime_data)
             if total_crime_chart:
                 st.sidebar.plotly_chart(total_crime_chart, use_container_width=True)
         else:
             st.sidebar.info("No total crime data available.")
         
-        # Display charts in tabs
+        # Vytvoření záložek pro různé vizualizace
         tab1, tab2, tab3, tab4 = st.tabs([
             "Crime by Region", 
             "Crime Trends", 
             "Crime Types Comparison", 
             "Crime Distribution"
         ])
-        
+
+        # === Záložka: Kriminalita podle regionu ===
         with tab1:
             st.subheader("Crime Counts by Region")
             
@@ -357,12 +360,13 @@ def main():
                 else:
                     st.info("No data available for the selected filters.")
                 
-                # Show crime type description
+                 # Zobrazení názvu vybraného typu kriminality
                 crime_type_name = crime_type_dict.get(selected_crime_type, "Unknown")
                 st.write(f"Selected Crime Type: {crime_type_name}")
             else:
                 st.info("No crime data available.")
-        
+
+        # === Záložka: Trendy kriminality ===
         with tab2:
             st.subheader("Crime Trends Over Time")
             
@@ -374,7 +378,8 @@ def main():
                     st.info("No trend data available for the selected crime type.")
             else:
                 st.info("No crime data available.")
-        
+
+        # === Záložka: Porovnání typů kriminality ===
         with tab3:
             st.subheader("Comparison of Crime Types by Region")
             
@@ -386,25 +391,28 @@ def main():
                     st.info("No comparison data available for the selected year.")
             else:
                 st.info("No crime data available.")
-        
+
+        # === Záložka: Distribuce kriminality (Sunburst a Treemap) ===
         with tab4:
             st.subheader("Crime Distribution - Sunburst and Treemap")
-            
+
+            # Výběr hierarchie pro vizualizaci Sunburst a Treemap
             if all_crime_data:
                 # Allow user to select hierarchy for Sunburst and Treemap
                 st.sidebar.header("Hierarchy Options")
                 st.sidebar.info("Note: This option affects only the 'Crime Distribution' section.")  # Added user note
                 hierarchy_options = [
-                    ["year", "crime_type", "area_name"],
-                    ["area_name", "crime_type", "year"],
-                    ["crime_type", "year", "area_name"]
+                    ["year", "crime_type", "area_name"],    # Hierarchie: Rok > Typ kriminality > Region
+                    ["area_name", "crime_type", "year"],     # Hierarchie: Region > Typ kriminality > Rok
+                    ["crime_type", "year", "area_name"]    # Hierarchie: Typ kriminality > Rok > Region
                 ]
                 selected_hierarchy = st.sidebar.selectbox(
                     "Select Hierarchy:",
                     options=hierarchy_options,
-                    format_func=lambda x: " > ".join(x)
+                    format_func=lambda x: " > ".join(x)    # Zobrazení hierarchie jako text
                 )
-                
+
+                 # Vytvoření vizualizací Sunburst a Treemap
                 sunburst_chart, treemap_chart = create_combined_sunburst_treemap(all_crime_data, selected_hierarchy)
                 if sunburst_chart and treemap_chart:
                     st.plotly_chart(sunburst_chart, use_container_width=True)
@@ -413,10 +421,12 @@ def main():
                     st.info("No distribution data available.")
             else:
                 st.info("No crime data available.")
-                
+
+    # Ošetření chyb
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         st.error("Check if the backend API is running correctly.")
 
+# Spuštění aplikace
 if __name__ == "__main__":
     main()
