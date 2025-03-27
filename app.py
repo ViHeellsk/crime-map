@@ -84,7 +84,7 @@ def create_crime_bar_chart(crime_data, selected_year, selected_crime_type):
     return fig        # Vrácení grafu
 
 def create_crime_trend_chart(crime_data, selected_crime_type):
-    """Create a line chart showing crime trends over years"""
+   """Vytvoří spojnicový graf zobrazující trendy kriminality podle regionů."""
     # Filter for the selected crime type
     filtered_data = [
         item for item in crime_data 
@@ -96,13 +96,13 @@ def create_crime_trend_chart(crime_data, selected_crime_type):
     if df.empty:
         return None
     
-    # Get data for all regions except the whole country
+   # Filtrování dat: vyloučíme celostátní údaje, ponecháme pouze jednotlivé regiony
     df = df[df["area_id"] > 1]
     
-    # Group by year and region
+     # Seskupení podle roku a regionu, součet trestných činů v dané oblasti
     df_grouped = df.groupby(["year", "area_name"])["count"].sum().reset_index()
     
-    # Create line chart
+    # Vytvoření spojnicového grafu
     fig = px.line(
         df_grouped, 
         x="year", 
@@ -111,7 +111,8 @@ def create_crime_trend_chart(crime_data, selected_crime_type):
         title=f"Crime Trends by Region",
         labels={"count": "Crime Count", "year": "Year", "area_name": "Region"}
     )
-    
+
+    # Úprava vzhledu grafu
     fig.update_layout(
         xaxis_title="Year",
         yaxis_title="Crime Count",
@@ -121,22 +122,25 @@ def create_crime_trend_chart(crime_data, selected_crime_type):
     
     return fig
 def create_crime_comparison_chart(crime_data, selected_year):
-    """Create a grouped bar chart comparing crime types"""
-    # Filter for the selected year
+     """Vytvoří seskupený sloupcový graf porovnávající typy kriminality podle regionů."""
+    
+    # Filtrování dat pouze pro vybraný rok
     filtered_data = [
         item for item in crime_data 
         if item["year"] == selected_year
     ]
-    
+
+    # Převod dat do formátu pandas DataFrame
     df = pd.DataFrame(filtered_data)
-    
+
+    # Pokud neexistují žádná data pro vybraný rok, vrátíme None
     if df.empty:
         return None
     
-    # Get data for all regions except the whole country
+    # Filtrování dat: vyloučíme celostátní údaje, ponecháme pouze jednotlivé regiony
     df = df[df["area_id"] > 1]
     
-    # Create grouped bar chart
+     # Vytvoření seskupeného sloupcového grafu
     fig = px.bar(
         df,
         x="area_name",
@@ -146,7 +150,8 @@ def create_crime_comparison_chart(crime_data, selected_year):
         barmode="group",
         labels={"area_name": "Region", "count": "Crime Count", "crime_type": "Crime Type"}
     )
-    
+
+     # Úprava vzhledu grafu
     fig.update_layout(
         xaxis_tickangle=-45,
         xaxis_title="Region",
@@ -158,19 +163,22 @@ def create_crime_comparison_chart(crime_data, selected_year):
     return fig
 
 def create_total_crime_by_type(crime_data, selected_year):
-    """Create a pie chart showing total crime by type"""
-    # Filter for the selected year and whole country (area_id = 1)
+   """Vytvoří koláčový graf zobrazující celkový počet trestných činů podle typu."""
+     
+    # Filtrování dat pouze pro vybraný rok
     filtered_data = [
         item for item in crime_data 
         if item["year"] == selected_year and item["area_id"] == 1
     ]
-    
+
+     # Převod dat do pandas DataFrame
     df = pd.DataFrame(filtered_data)
-    
+
+     # Pokud neexistují žádná data pro vybraný rok, vrátíme None
     if df.empty:
         return None
     
-    # Create pie chart
+     # Vytvoření koláčového grafu
     fig = px.pie(
         df,
         values="count",
